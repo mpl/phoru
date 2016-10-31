@@ -1,2 +1,2 @@
 # phoru
-Given a phonetic russian input, phoru outputs (cyrillic) russian.
+Given a (pseudo-)phonetic russian input, phoru outputs (cyrillic) russian.
