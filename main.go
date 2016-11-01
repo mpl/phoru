@@ -17,7 +17,18 @@ var (
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "\t echo privyét mir | phoru\n")
+	fmt.Fprintf(os.Stderr, "example:\n\t echo privet mir | phoru\n")
+	fmt.Fprintf(os.Stderr, "\ntranslation tables:\n")
+	// TODO(mpl): sort them
+	for k, v := range single {
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", k, string(v))
+	}
+	for k, v := range double {
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", k, string(v))
+	}
+	for k, v := range triple {
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", k, string(v))
+	}
 	flag.PrintDefaults()
 	os.Exit(2)
 }
@@ -39,6 +50,7 @@ var (
 		"v": 'в',
 		"g": 'г',
 		"d": 'д',
+		"e": 'e',
 		"j": 'ж',
 		"i": 'и',
 		"z": 'з',
@@ -56,7 +68,6 @@ var (
 		"è": 'э',
 	}
 	double = map[string]rune{
-		"yé": 'e',
 		"yo": 'ë',
 		"iy": 'й',
 		"ou": 'y',
