@@ -41,7 +41,11 @@ The Russian alphabet
 */
 
 // TODO(mpl): uppercase
-// TODO(mpl): use same pseudo-phonetics as goog translate.
+// TODO(mpl): use same pseudo-phonetics as goog translate maybe?
+// TODO(mpl): greediness can break some cases. ex: with iy->й, and ya->я, when I
+// want to write ия, I get йa instead. I need to rethink all bi and tri letter
+// combinations. worst case scenario, I add delimiters (single quotes maybe?)
+// around combinations. For now, changing iy into ï.
 
 var (
 	single = map[string]rune{
@@ -53,9 +57,10 @@ var (
 		"e": 'e',
 		"j": 'ж',
 		"i": 'и',
+		"ï": 'й',
 		"z": 'з',
 		"k": 'к',
-		"l": 'д',
+		"l": 'л',
 		"m": 'm',
 		"n": 'н',
 		"o": 'o',
@@ -63,14 +68,13 @@ var (
 		"r": 'p',
 		"s": 'c',
 		"t": 't',
+		"u": 'y',
 		"f": 'ф',
 		"î": 'ы',
 		"è": 'э',
 	}
 	double = map[string]rune{
 		"yo": 'ë',
-		"iy": 'й',
-		"ou": 'y',
 		"kh": 'х',
 		"ts": 'ц',
 		"ch": 'ч',
