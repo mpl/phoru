@@ -45,7 +45,8 @@ The Russian alphabet
 // TODO(mpl): greediness can break some cases. ex: with iy->й, and ya->я, when I
 // want to write ия, I get йa instead. I need to rethink all bi and tri letter
 // combinations. worst case scenario, I add delimiters (single quotes maybe?)
-// around combinations. For now, changing iy into ï.
+// around combinations. For now, changing iy into ï. I didn't hit any other
+// breaking example so far, but we'll see when my vocabulary extends.
 
 var (
 	single = map[string]rune{
@@ -80,6 +81,9 @@ var (
 		"ch": 'ч',
 		"sh": 'ш',
 		"ya": 'я',
+		"i_": 'й', // redundant with ï for non-accented keymaps
+		"i-": 'ы', // redundant with î for non-accented keymaps
+		"`e": 'э', // redundant with è for non-accented keymaps
 	}
 	triple = map[string]rune{
 		"shh": 'щ',
