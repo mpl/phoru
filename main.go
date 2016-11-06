@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -20,15 +21,27 @@ var (
 func usage() {
 	fmt.Fprintf(os.Stderr, "example:\n\t echo privet mir | phoru\n")
 	fmt.Fprintf(os.Stderr, "\ntranslation tables:\n")
-	// TODO(mpl): sort them
-	for k, v := range single {
-		fmt.Fprintf(os.Stderr, "\t %v : %v\n", k, string(v))
+	var sortedSingle, sortedDouble, sortedTriple []string
+	for k, _ := range single {
+		sortedSingle = append(sortedSingle, k)
 	}
-	for k, v := range double {
-		fmt.Fprintf(os.Stderr, "\t %v : %v\n", k, string(v))
+	for k, _ := range double {
+		sortedDouble = append(sortedDouble, k)
 	}
-	for k, v := range triple {
-		fmt.Fprintf(os.Stderr, "\t %v : %v\n", k, string(v))
+	for k, _ := range triple {
+		sortedTriple = append(sortedTriple, k)
+	}
+	sort.Strings(sortedSingle)
+	sort.Strings(sortedDouble)
+	sort.Strings(sortedTriple)
+	for _, v := range sortedSingle {
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(single[v]))
+	}
+	for _, v := range sortedDouble {
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(double[v]))
+	}
+	for _, v := range sortedTriple {
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(triple[v]))
 	}
 	flag.PrintDefaults()
 	os.Exit(2)
