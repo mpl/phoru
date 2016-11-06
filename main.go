@@ -1,5 +1,6 @@
 // Copyright 2016 Mathieu Lonjaret
 
+// Given a (pseudo-)phonetic russian input, phoru outputs (cyrillic) russian.
 package main
 
 import (
