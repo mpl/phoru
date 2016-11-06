@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -40,7 +41,6 @@ The Russian alphabet
 Х х	Ц ц	Ч ч	Ш ш	Щ щ	Ъ ъ	Ы ы	Ь ь	Э э	Ю ю	Я я
 */
 
-// TODO(mpl): uppercase
 // TODO(mpl): use same pseudo-phonetics as goog translate maybe?
 // TODO(mpl): greediness can break some cases. ex: with iy->й, and ya->я, when I
 // want to write ия, I get йa instead. I need to rethink all bi and tri letter
@@ -111,6 +111,7 @@ func main() {
 				runes = append(runes, v)
 			}
 			for i, r := range runes {
+				isUpper := false
 				if skipTwo {
 					skipTwo = false
 					skipOne = true
@@ -123,15 +124,29 @@ func main() {
 				if *flagVerbose {
 					fmt.Fprintf(os.Stderr, "%v", string(r))
 				}
+				isUpper = unicode.IsUpper(r)
+				if isUpper {
+					r = unicode.ToLower(r)
+					runes[i] = r
+				}
 				// TODO(mpl): refactor
 				if len(runes[i:]) > 2 {
 					if cyril, ok := triple[string(runes[i:i+3])]; ok {
+						if isUpper {
+							cyril = unicode.ToUpper(cyril)
+						}
 						trans = append(trans, cyril)
 						skipTwo = true
 					} else if cyril, ok := double[string(runes[i:i+2])]; ok {
+						if isUpper {
+							cyril = unicode.ToUpper(cyril)
+						}
 						trans = append(trans, cyril)
 						skipOne = true
 					} else if cyril, ok := single[string(runes[i:i+1])]; ok {
+						if isUpper {
+							cyril = unicode.ToUpper(cyril)
+						}
 						trans = append(trans, cyril)
 					} else {
 						log.Printf("unknown rune: %v", string(r))
@@ -139,9 +154,15 @@ func main() {
 					}
 				} else if len(runes[i:]) > 1 {
 					if cyril, ok := double[string(runes[i:i+2])]; ok {
+						if isUpper {
+							cyril = unicode.ToUpper(cyril)
+						}
 						trans = append(trans, cyril)
 						skipOne = true
 					} else if cyril, ok := single[string(runes[i:i+1])]; ok {
+						if isUpper {
+							cyril = unicode.ToUpper(cyril)
+						}
 						trans = append(trans, cyril)
 					} else {
 						log.Printf("unknown rune: %v", string(r))
@@ -149,6 +170,9 @@ func main() {
 					}
 				} else {
 					if cyril, ok := single[string(runes[i:i+1])]; ok {
+						if isUpper {
+							cyril = unicode.ToUpper(cyril)
+						}
 						trans = append(trans, cyril)
 					} else {
 						log.Printf("unknown rune: %v", string(r))
