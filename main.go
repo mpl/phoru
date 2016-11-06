@@ -142,68 +142,16 @@ func main() {
 					r = unicode.ToLower(r)
 					runes[i] = r
 				}
-				// TODO(mpl): refactor
-				if len(runes[i:]) > 2 {
-					cyril, skip := toCyrillic(runes, i)
-					if isUpper {
-						cyril = unicode.ToUpper(cyril)
-					}
-					trans = append(trans, cyril)
-					if skip == 2 {
-						skipTwo = true
-					} else if skip == 1{
-						skipOne = true
-					}
-					continue
-/*
-					if cyril, ok := triple[string(runes[i:i+3])]; ok {
-						if isUpper {
-							cyril = unicode.ToUpper(cyril)
-						}
-						trans = append(trans, cyril)
-						skipTwo = true
-					} else if cyril, ok := double[string(runes[i:i+2])]; ok {
-						if isUpper {
-							cyril = unicode.ToUpper(cyril)
-						}
-						trans = append(trans, cyril)
-						skipOne = true
-					} else if cyril, ok := single[string(runes[i:i+1])]; ok {
-						if isUpper {
-							cyril = unicode.ToUpper(cyril)
-						}
-						trans = append(trans, cyril)
-					} else {
-						log.Printf("unknown rune: %v", string(r))
-						trans = append(trans, r)
-					}
-*/
-				} else if len(runes[i:]) > 1 {
-					if cyril, ok := double[string(runes[i:i+2])]; ok {
-						if isUpper {
-							cyril = unicode.ToUpper(cyril)
-						}
-						trans = append(trans, cyril)
-						skipOne = true
-					} else if cyril, ok := single[string(runes[i:i+1])]; ok {
-						if isUpper {
-							cyril = unicode.ToUpper(cyril)
-						}
-						trans = append(trans, cyril)
-					} else {
-						log.Printf("unknown rune: %v", string(r))
-						trans = append(trans, r)
-					}
-				} else {
-					if cyril, ok := single[string(runes[i:i+1])]; ok {
-						if isUpper {
-							cyril = unicode.ToUpper(cyril)
-						}
-						trans = append(trans, cyril)
-					} else {
-						log.Printf("unknown rune: %v", string(r))
-						trans = append(trans, r)
-					}
+				cyril, n := toCyrillic(runes, i)
+				if isUpper {
+					cyril = unicode.ToUpper(cyril)
+				}
+				trans = append(trans, cyril)
+				// TODO(mpl): something more elegant?
+				if n == 3 {
+					skipTwo = true
+				} else if n == 2 {
+					skipOne = true
 				}
 				if *flagVerbose {
 					fmt.Fprintf(os.Stderr, " -> %v\n", string(trans[len(trans)-1:]))
@@ -217,26 +165,29 @@ func main() {
 	}
 }
 
-func toCyrillic(runes []rune, index int) (cyril rune, skip int) {
+// toCyrillic converts to a cyrillic rune the next rune from runes, starting at
+// runes[i]. It returns the converted rune, as well as the number of runes that
+// were "consumed" from runes.
+func toCyrillic(runes []rune, index int) (cyril rune, read int) {
 	i := index
 	switch {
 	case len(runes[i:]) > 2:
 		if cyril, ok := triple[string(runes[i:i+3])]; ok {
-			return cyril, 2
+			return cyril, 3
 		}
 		fallthrough
 	case len(runes[i:]) > 1:
 		if cyril, ok := double[string(runes[i:i+2])]; ok {
-			return cyril, 1
+			return cyril, 2
 		}
 		fallthrough
 	case len(runes[i:]) == 1:
 		if cyril, ok := single[string(runes[i:i+1])]; ok {
-			return cyril, 0
+			return cyril, 1
 		}
 		fallthrough
 	default:
 		log.Printf("unknown rune: %v", string(runes[i]))
-		return runes[i], 0
+		return runes[i], 1
 	}
 }
