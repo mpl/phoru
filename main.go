@@ -8,15 +8,21 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	//	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"unicode"
 )
 
+// TODO(mpl): run gopherjs on it, and see if we can somehow import and use the
+// resulting js in a Google Apps script.
+
 var (
 	flagHelp    = flag.Bool("h", false, "show this help")
 	flagVerbose = flag.Bool("v", false, "verbose")
+
+//	flagHttp = flag.String("http", "", "Run in http server mode, on the given address.")
 )
 
 func usage() {
@@ -44,6 +50,7 @@ func usage() {
 	for _, v := range sortedTriple {
 		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(triple[v]))
 	}
+//	fmt.Fprintf(os.Stderr, "\nin server mode:\n\t phoru -http=:6060\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
@@ -111,6 +118,16 @@ func main() {
 	if *flagHelp {
 		usage()
 	}
+
+	// TODO(mpl): browser mode (for windows users)
+	/*
+		if *flagHttp != "" {
+			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, "Hello, you")
+			})
+			log.Fatal(http.ListenAndServe(*flagHttp, nil))
+		}
+	*/
 
 	sc := bufio.NewScanner(os.Stdin)
 	var skipTwo, skipOne bool
