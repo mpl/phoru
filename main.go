@@ -7,8 +7,10 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"html/template"
+	"io"
 	"log"
-	//	"net/http"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -16,13 +18,15 @@ import (
 )
 
 // TODO(mpl): run gopherjs on it, and see if we can somehow import and use the
-// resulting js in a Google Apps script.
+// resulting js in a Google Apps script. Although, even if I could make it work
+// since the resulting code is huge, it seems like a bad idea, for a tool that
+// should run often and fast.
 
 var (
 	flagHelp    = flag.Bool("h", false, "show this help")
 	flagVerbose = flag.Bool("v", false, "verbose")
 
-//	flagHttp = flag.String("http", "", "Run in http server mode, on the given address.")
+	flagHttp = flag.String("http", "", "Run in http server mode, on the given address.")
 )
 
 func usage() {
@@ -50,7 +54,7 @@ func usage() {
 	for _, v := range sortedTriple {
 		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(triple[v]))
 	}
-//	fmt.Fprintf(os.Stderr, "\nin server mode:\n\t phoru -http=:6060\n")
+	fmt.Fprintf(os.Stderr, "\nin server mode:\n\t phoru -http=:6060\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
@@ -119,23 +123,28 @@ func main() {
 		usage()
 	}
 
-	// TODO(mpl): browser mode (for windows users)
-	/*
-		if *flagHttp != "" {
-			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, "Hello, you")
-			})
-			log.Fatal(http.ListenAndServe(*flagHttp, nil))
-		}
-	*/
+	if *flagHttp != "" {
+		tmpl = template.Must(template.New("root").Parse(HTML))
+		http.HandleFunc("/", makeHandler(rootHandler))
+		log.Fatal(http.ListenAndServe(*flagHttp, nil))
+	}
 
-	sc := bufio.NewScanner(os.Stdin)
+	trans, err := phoru(os.Stdin)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Fprintf(os.Stdout, "%v", string(trans))
+}
+
+func phoru(r io.Reader) ([]rune, error) {
+	var out []rune
+	sc := bufio.NewScanner(r)
 	var skipTwo, skipOne bool
 	for sc.Scan() {
 		words := strings.Fields(sc.Text())
 		for j, word := range words {
 			if j != 0 {
-				fmt.Fprintf(os.Stdout, " ")
+				out = append(out, rune(' '))
 			}
 			var runes, trans []rune
 			for _, v := range word {
@@ -175,12 +184,13 @@ func main() {
 					fmt.Fprintf(os.Stderr, " -> %v\n", string(trans[len(trans)-1:]))
 				}
 			}
-			fmt.Fprintf(os.Stdout, "%v", string(trans))
+			out = append(out, trans...)
 		}
 	}
 	if err := sc.Err(); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
+	return out, nil
 }
 
 // toCyrillic converts to a cyrillic rune the next rune from runes, starting at
@@ -209,3 +219,87 @@ func toCyrillic(runes []rune, index int) (cyril rune, read int) {
 		return runes[i], 1
 	}
 }
+
+const idstring = "http://golang.org/pkg/http/#ListenAndServe"
+
+var tmpl *template.Template
+
+func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if e, ok := recover().(error); ok {
+				http.Error(w, e.Error(), http.StatusInternalServerError)
+				return
+			}
+		}()
+		title := r.URL.Path
+		w.Header().Set("Server", idstring)
+		fn(w, r, title)
+	}
+}
+
+type Translation struct {
+	Input  string
+	Output string
+	IsPost bool // TODO(mpl): meh. tired. do better later.
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request, url string) {
+	if r.Method == "GET" {
+		if err := tmpl.Execute(w, nil); err != nil {
+			log.Printf("template error: %v", err)
+		}
+		return
+	}
+	if r.Method != "POST" {
+		http.Error(w, "not a POST", http.StatusMethodNotAllowed)
+		return
+	}
+	input := r.FormValue("inputtext")
+	trans, err := phoru(strings.NewReader(input))
+	if err != nil {
+		log.Printf("translation error: %v", err)
+		http.Error(w, "translation error", 500)
+		return
+	}
+	data := &Translation{
+		Input:  input,
+		Output: string(trans),
+		IsPost: true,
+	}
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("template error: %v", err)
+	}
+}
+
+var HTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Phoru</title>
+</head>
+<body>
+	<h1>Translate from pseudo-phonetics Russian, into Cyrillic Russian.</h1>
+
+	<form action="/translate" method="POST" id="translateform" enctype="multipart/form-data">
+	{{if .IsPost}}
+    <input type="text" id="textinput" width=50 name="inputtext" value="{{.Input}}">
+	{{else}}
+    <input type="text" id="textinput" width=50 name="inputtext" value="Privet Mir!">
+	{{end}}
+    <input type="submit" id="textsubmit" value="Translate">
+  </form>
+
+	{{if .Output}}
+	<p>
+	{{.Output}}
+	</p>
+	{{end}}
+
+	<p>
+	Source code at: <a href="https://github.com/mpl/phoru">mpl/phoru</a>
+	</p>
+
+</body>
+</html>
+`
