@@ -124,6 +124,11 @@ func main() {
 	}
 
 	if *flagHttp != "" {
+		baseData = &Translation{
+			Single: single,
+			Double: double,
+			Triple: triple,
+		}
 		tmpl = template.Must(template.New("root").Parse(HTML))
 		http.HandleFunc("/", makeHandler(rootHandler))
 		log.Fatal(http.ListenAndServe(*flagHttp, nil))
@@ -222,7 +227,10 @@ func toCyrillic(runes []rune, index int) (cyril rune, read int) {
 
 const idstring = "http://golang.org/pkg/http/#ListenAndServe"
 
-var tmpl *template.Template
+var (
+	tmpl     *template.Template
+	baseData *Translation
+)
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -242,11 +250,14 @@ type Translation struct {
 	Input  string
 	Output string
 	IsPost bool // TODO(mpl): meh. tired. do better later.
+	Single map[string]rune
+	Double map[string]rune
+	Triple map[string]rune
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request, url string) {
 	if r.Method == "GET" {
-		if err := tmpl.Execute(w, nil); err != nil {
+		if err := tmpl.Execute(w, baseData); err != nil {
 			log.Printf("template error: %v", err)
 		}
 		return
@@ -266,6 +277,9 @@ func rootHandler(w http.ResponseWriter, r *http.Request, url string) {
 		Input:  input,
 		Output: string(trans),
 		IsPost: true,
+		Single: single,
+		Double: double,
+		Triple: triple,
 	}
 	if err := tmpl.Execute(w, data); err != nil {
 		log.Printf("template error: %v", err)
@@ -279,7 +293,7 @@ var HTML = `
   <title>Phoru</title>
 </head>
 <body>
-	<h1>Translate from pseudo-phonetics Russian, into Cyrillic Russian.</h1>
+	<h1>Translate from pseudo-phonetics Russian, into Cyrillic Russian.</h1>	
 
 	<form action="/translate" method="POST" id="translateform" enctype="multipart/form-data">
 	{{if .IsPost}}
@@ -295,6 +309,50 @@ var HTML = `
 	{{.Output}}
 	</p>
 	{{end}}
+
+	<h2>Conversion table</h2>
+	<p>
+	<table style="border: 1px solid black; border-collapse: collapse">
+	<tr>
+	{{range $latin,$cyr := .Single}}
+	<td style="border: 1px solid black; padding: 7px; text-align: center">{{$latin}}</td>
+	{{end}}
+	</tr>
+	<tr>
+	{{range $latin,$cyr := .Single}}
+	<td style="border: 1px solid black; padding: 7px; text-align: center">{{printf "%c" $cyr}}</td>
+	{{end}}
+	</tr>
+	</table>
+	</p>
+	<p>
+	<table style="border: 1px solid black; border-collapse: collapse">
+	<tr>
+	{{range $latin,$cyr := .Double}}
+	<td style="border: 1px solid black; padding: 7px; text-align: center">{{$latin}}</td>
+	{{end}}
+	</tr>
+	<tr>
+	{{range $latin,$cyr := .Double}}
+	<td style="border: 1px solid black; padding: 7px; text-align: center">{{printf "%c" $cyr}}</td>
+	{{end}}
+	</tr>
+	</table>
+	</p>
+	<p>
+	<table style="border: 1px solid black; border-collapse: collapse">
+	<tr>
+	{{range $latin,$cyr := .Triple}}
+	<td style="border: 1px solid black; padding: 7px; text-align: center">{{$latin}}</td>
+	{{end}}
+	</tr>
+	<tr>
+	{{range $latin,$cyr := .Triple}}
+	<td style="border: 1px solid black; padding: 7px; text-align: center">{{printf "%c" $cyr}}</td>
+	{{end}}
+	</tr>
+	</table>
+	</p>
 
 	<p>
 	Source code at: <a href="https://github.com/mpl/phoru">mpl/phoru</a>
