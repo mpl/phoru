@@ -293,18 +293,19 @@ var HTML = `
   <title>Phoru</title>
 </head>
 <body>
-	<h1>Translate from pseudo-phonetics Russian, into Cyrillic Russian.</h1>	
+	<h1>Translate from pseudo-phonetics Russian, into Cyrillic Russian.</h1>
 
 	<form action="/translate" method="POST" id="translateform" enctype="multipart/form-data">
 	{{if .IsPost}}
-    <input type="text" id="textinput" width=50 name="inputtext" value="{{.Input}}">
+	<textarea rows="5" cols="100" name="inputtext" form="translateform">{{.Input}}</textarea>
 	{{else}}
-    <input type="text" id="textinput" width=50 name="inputtext" value="Privet Mir!">
+	<textarea rows="5" cols="100" name="inputtext" form="translateform">Privet Mir!</textarea>
 	{{end}}
     <input type="submit" id="textsubmit" value="Translate">
   </form>
 
 	{{if .Output}}
+	<h2>Conversion result</h1>
 	<p>
 	{{.Output}}
 	</p>
