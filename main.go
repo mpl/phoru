@@ -145,7 +145,13 @@ func phoru(r io.Reader) ([]rune, error) {
 	var out []rune
 	sc := bufio.NewScanner(r)
 	var skipTwo, skipOne bool
+	firstLine := true
 	for sc.Scan() {
+		if !firstLine {
+			out = append(out, '\n')
+		} else {
+			firstLine = false
+		}
 		words := strings.Fields(sc.Text())
 		for j, word := range words {
 			if j != 0 {
@@ -307,7 +313,7 @@ var HTML = `
 	{{if .Output}}
 	<h2>Conversion result</h1>
 	<p>
-	{{.Output}}
+	<pre>{{.Output}}</pre>
 	</p>
 	{{end}}
 
