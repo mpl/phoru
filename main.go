@@ -102,7 +102,6 @@ var (
 	double = map[string]rune{
 		"yo": 'ё',
 		"kh": 'х',
-		"ts": 'ц',
 		"ch": 'ч',
 		"sh": 'ш',
 		"ya": 'я',
@@ -114,6 +113,10 @@ var (
 	triple = map[string]rune{
 		"shh": 'щ',
 		"you": 'ю',
+		// TODO(mpl): find a better solution for the "тс" VS "ц"
+		// conflict. Especially since ц is way more frequent than тс (in my
+		// limited experience).
+		"ts-": 'ц',
 	}
 )
 
