@@ -15,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/mpl/simpletls"
 )
 
 // TODO(mpl): run gopherjs on it, and see if we can somehow import and use the
@@ -26,6 +28,7 @@ var (
 	flagHelp    = flag.Bool("h", false, "show this help")
 	flagVerbose = flag.Bool("v", false, "verbose")
 
+	flagTLS  = flag.Bool("tls", true, "Enable TLS for the http server mode.")
 	flagHttp = flag.String("http", "", "Run in http server mode, on the given address.")
 )
 
@@ -135,6 +138,13 @@ func main() {
 		}
 		tmpl = template.Must(template.New("root").Parse(HTML))
 		http.HandleFunc("/", makeHandler(rootHandler))
+		if *flagTLS {
+			listener, err := simpletls.Listen(*flagHttp)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Fatal(http.Serve(listener, nil))
+		}
 		log.Fatal(http.ListenAndServe(*flagHttp, nil))
 	}
 
