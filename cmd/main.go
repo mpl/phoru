@@ -19,10 +19,7 @@ import (
 	"github.com/mpl/simpletls"
 )
 
-// TODO(mpl): run gopherjs on it, and see if we can somehow import and use the
-// resulting js in a Google Apps script. Although, even if I could make it work
-// since the resulting code is huge, it seems like a bad idea, for a tool that
-// should run often and fast.
+// TODO(mpl): make it use github.com/mpl/phoru.Translate
 
 var (
 	flagHelp    = flag.Bool("h", false, "show this help")

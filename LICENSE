@@ -173,6 +173,8 @@
       incurred by, or claims asserted against, such Contributor by reason
       of your accepting any such warranty or additional liability.
 
+The Go gopher was designed by Renee French. http://reneefrench.blogspot.com/ The design is licensed under the Creative Commons 3.0 Attributions license. Read this article for more details: https://blog.golang.org/gopher
+
    END OF TERMS AND CONDITIONS
 
    APPENDIX: How to apply the Apache License to your work.
@@ -199,3 +201,4 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
