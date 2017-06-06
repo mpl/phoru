@@ -7,34 +7,37 @@ function renderStatus(statusText) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-	chrome.tabs.query({active:true, currentWindow: true}, 
+	var t = setTimeout(function(){
+		var result = document.getElementById('result');
+		if (!result || !result.textContent || result.textContent == "") {
+			renderStatus("No selection. Highlight some text with your mouse cursor.");
+		}
+	},1000);
+	translateSelection(t);
+});
+
+function translateSelection(timerId) {
+	chrome.tabs.query({active:true, currentWindow: true},
 	function(tabs) {
 		chrome.tabs.sendMessage(tabs[0].id, {method: "getSelection"}, 
 		function(response){
 			if (response == null || response.data == "") {
-				renderStatus("No selection. Highlight some text with your mouse cursor.");
 				return;
 			}
+			clearTimeout(timerId);
 			phoru(response.data);
 		});
 	});
-});
+}
 
 function phoru(selection) {
 	var translated = gophoru.Run(selection, function(errMsg) {
 		renderStatus("Error: " + errMsg);
 	});
 	if (translated == "") {
-		// TODO(mpl): Can this ever happen? nm for now.
-		renderStatus("No selection. Highlight some text with your mouse cursor.");
 		return;		
 	}
 	var result = document.getElementById('result');
 	result.textContent = translated;
 	result.hidden = false;
-
-	chrome.tabs.query({active:true, currentWindow: true}, 
-	function(tabs) {
-		chrome.tabs.sendMessage(tabs[0].id, {method: "setSelection", translation: translated});
-	});
 }
