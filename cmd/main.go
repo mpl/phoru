@@ -274,6 +274,18 @@ type Translation struct {
 
 func rootHandler(w http.ResponseWriter, r *http.Request, url string) {
 	if r.Method == "GET" {
+		if inputText := r.FormValue("q"); inputText != "" {
+			trans, err := phoru(strings.NewReader(inputText))
+			if err != nil {
+				log.Printf("translation error: %v", err)
+				http.Error(w, "translation error", 500)
+				return
+			}
+			if _, err := w.Write([]byte(string(trans))); err != nil {
+				log.Printf("error sending translation: %v", err)
+			}
+			return
+		}
 		if err := tmpl.Execute(w, baseData); err != nil {
 			log.Printf("template error: %v", err)
 		}
