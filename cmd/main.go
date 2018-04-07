@@ -134,6 +134,7 @@ func main() {
 			Triple: triple,
 		}
 		tmpl = template.Must(template.New("root").Parse(HTML))
+		http.HandleFunc("/phoru/", makeHandler(apiHandler))
 		http.HandleFunc("/", makeHandler(rootHandler))
 		if *flagTLS {
 			listener, err := simpletls.Listen(*flagHttp)
@@ -272,20 +273,31 @@ type Translation struct {
 	Triple map[string]rune
 }
 
+func apiHandler(w http.ResponseWriter, r *http.Request, url string) {
+	if r.URL.Path != "/phoru/" {
+		http.Error(w, "not found", 404)
+		return
+	}
+	latin := r.FormValue("q")
+	if latin == "" {
+		if _, err := w.Write([]byte("")); err != nil {
+			log.Printf("error sending translation: %v", err)
+		}
+		return
+	}
+	cyril, err := phoru(strings.NewReader(latin))
+	if err != nil {
+		log.Printf("translation error: %v", err)
+		http.Error(w, "translation error", 500)
+		return
+	}
+	if _, err := w.Write([]byte(string(cyril))); err != nil {
+		log.Printf("error sending translation: %v", err)
+	}
+}
+
 func rootHandler(w http.ResponseWriter, r *http.Request, url string) {
 	if r.Method == "GET" {
-		if inputText := r.FormValue("q"); inputText != "" {
-			trans, err := phoru(strings.NewReader(inputText))
-			if err != nil {
-				log.Printf("translation error: %v", err)
-				http.Error(w, "translation error", 500)
-				return
-			}
-			if _, err := w.Write([]byte(string(trans))); err != nil {
-				log.Printf("error sending translation: %v", err)
-			}
-			return
-		}
 		if err := tmpl.Execute(w, baseData); err != nil {
 			log.Printf("template error: %v", err)
 		}
