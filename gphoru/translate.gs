@@ -45,7 +45,7 @@ function onInstall(e) {
  */
 function showSidebar() {
   var ui = HtmlService.createHtmlOutputFromFile('sidebar')
-      .setTitle('Translate');
+      .setTitle('Phoru');
   DocumentApp.getUi().showSidebar(ui);
 }
 
@@ -90,78 +90,25 @@ function getSelectedText() {
   }
 }
 
-/**
- * Gets the stored user preferences for the origin and destination languages,
- * if they exist.
- * This method is only used by the regular add-on, and is never called by
- * the mobile add-on version.
- *
- * @return {Object} The user's origin and destination language preferences, if
- *     they exist.
- */
-function getPreferences() {
-  var userProperties = PropertiesService.getUserProperties();
-  return {
-    originLang: userProperties.getProperty('originLang'),
-    destLang: userProperties.getProperty('destLang')
-  };
-}
-
-/**
- * Gets the user-selected text and translates it from the origin language to the
- * destination language. The languages are notated by their two-letter short
- * form. For example, English is 'en', and Spanish is 'es'. The origin language
- * may be specified as an empty string to indicate that Google Translate should
- * auto-detect the language.
- *
- * @param {string} origin The two-letter short form for the origin language.
- * @param {string} dest The two-letter short form for the destination language.
- * @param {boolean} savePrefs Whether to save the origin and destination
- *     language preferences.
- * @return {Object} Object containing the original text and the result of the
- *     translation.
- */
-function getTextAndTranslation(origin, dest, savePrefs) {
-  if (savePrefs) {
-    PropertiesService.getUserProperties()
-        .setProperty('originLang', origin)
-        .setProperty('destLang', dest);
+function doPhoru() {
+  var latin = getSelectedText().join('\n');
+  var cyril = phoru(latin);
+  Logger.log("PHORUCATION: " + cyril);
+  if (cyril && cyril != "") {
+    insertText(cyril);
   }
-  var text = getSelectedText().join('\n');
-  return {
-    text: text,
-    translation: translateText(text, origin, dest)
-  };
+  return cyril;
 }
 
-function doPhorucation() {
-  var text = getSelectedText().join('\n');
-  var phorucation = phoru(text);
-  Logger.log("PHORUCATION: " + phorucation);
-  if (phorucation && phorucation != "") {
-    insertText(phorucation);
-  }
-}
-
-function getPhorucation() {
-  var text = getSelectedText().join('\n');
-  var phorucation = phoru(text);
-  Logger.log("PHORUCATION: " + phorucation);
-  return {
-    // result: phoru(text)
-    result: phorucation
-  };
-}
-
-// TODO: how to get debug statements/logging? oh, there was a Logger in an example. look into that.
-// TODO: make it run on my server. over https. then make that server configurable in manifest or whatever.
+// TODO: make the server configurable in manifest or whatever.
+// TODO: shortcut for button: https://stackoverflow.com/questions/13731589/how-to-create-custom-keyboard-shortcuts-for-google-app-script-functions
+// TODO: keep on making that sidebar smaller. or just ditch the sidebar altogether if possible.
 function phoru(text) {
   var query = text;
-  var url = 'http://granivo.re:8087/'
+  var url = 'https://granivo.re:8086/phoru/'
   + '?q=' + encodeURIComponent(query);
-
-  Logger.log("SENDING QUERY");
   var response = UrlFetchApp.fetch(url, {'muteHttpExceptions': true});
+  // TODO: test error status. dont want to replace on e.g. a 404
   Logger.log(response);
   return response;
 }
@@ -176,7 +123,6 @@ function phoru(text) {
  * @param {string} newText The text with which to replace the current selection.
  */
 function insertText(newText) {
-  Logger.log("INSERTING: " + newText);
   var selection = DocumentApp.getActiveDocument().getSelection();
   if (selection) {
     var replaced = false;
@@ -248,22 +194,4 @@ function insertText(newText) {
     }
     cursor.insertText(newText);
   }
-}
-
-/**
- * Given text, translate it from the origin language to the destination
- * language. The languages are notated by their two-letter short form. For
- * example, English is 'en', and Spanish is 'es'. The origin language may be
- * specified as an empty string to indicate that Google Translate should
- * auto-detect the language.
- *
- * @param {string} text text to translate.
- * @param {string} origin The two-letter short form for the origin language.
- * @param {string} dest The two-letter short form for the destination language.
- * @return {string} The result of the translation, or the original text if
- *     origin and dest languages are the same.
- */
-function translateText(text, origin, dest) {
-  if (origin === dest) return text;
-  return LanguageApp.translate(text, origin, dest);
 }
