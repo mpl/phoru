@@ -4,18 +4,16 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"sort"
 	"strings"
-	"unicode"
 
+	"github.com/mpl/phoru"
 	"github.com/mpl/simpletls"
 )
 
@@ -33,26 +31,26 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "example:\n\t echo privet mir | phoru\n")
 	fmt.Fprintf(os.Stderr, "\ntranslation tables:\n")
 	var sortedSingle, sortedDouble, sortedTriple []string
-	for k, _ := range single {
+	for k, _ := range phoru.Single {
 		sortedSingle = append(sortedSingle, k)
 	}
-	for k, _ := range double {
+	for k, _ := range phoru.Double {
 		sortedDouble = append(sortedDouble, k)
 	}
-	for k, _ := range triple {
+	for k, _ := range phoru.Triple {
 		sortedTriple = append(sortedTriple, k)
 	}
 	sort.Strings(sortedSingle)
 	sort.Strings(sortedDouble)
 	sort.Strings(sortedTriple)
 	for _, v := range sortedSingle {
-		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(single[v]))
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(phoru.Single[v]))
 	}
 	for _, v := range sortedDouble {
-		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(double[v]))
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(phoru.Double[v]))
 	}
 	for _, v := range sortedTriple {
-		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(triple[v]))
+		fmt.Fprintf(os.Stderr, "\t %v : %v\n", v, string(phoru.Triple[v]))
 	}
 	fmt.Fprintf(os.Stderr, "\nin server mode:\n\t phoru -http=:6060\n")
 	flag.PrintDefaults()
@@ -73,53 +71,6 @@ The Russian alphabet
 // around combinations. For now, changing iy into ï. I didn't hit any other
 // breaking example so far, but we'll see when my vocabulary extends.
 
-var (
-	single = map[string]rune{
-		"a": 'а',
-		"b": 'б',
-		"v": 'в',
-		"g": 'г',
-		"d": 'д',
-		"e": 'е',
-		"j": 'ж',
-		"i": 'и',
-		"ï": 'й',
-		"z": 'з',
-		"k": 'к',
-		"l": 'л',
-		"m": 'м',
-		"n": 'н',
-		"o": 'о',
-		"p": 'п',
-		"r": 'р',
-		"s": 'с',
-		"t": 'т',
-		"u": 'у',
-		"f": 'ф',
-		"x": 'х',
-		"î": 'ы',
-		"è": 'э',
-	}
-	double = map[string]rune{
-		"yo": 'ё',
-		"ch": 'ч',
-		"sh": 'ш',
-		"ya": 'я',
-		"b-": 'ь',
-		"i_": 'й', // redundant with ï for non-accented keymaps
-		"i-": 'ы', // redundant with î for non-accented keymaps
-		"`e": 'э', // redundant with è for non-accented keymaps
-	}
-	triple = map[string]rune{
-		"shh": 'щ',
-		"you": 'ю',
-		// TODO(mpl): find a better solution for the "тс" VS "ц"
-		// conflict. Especially since ц is way more frequent than тс (in my
-		// limited experience).
-		"ts-": 'ц',
-	}
-)
-
 func main() {
 	flag.Usage = usage
 	flag.Parse()
@@ -129,9 +80,9 @@ func main() {
 
 	if *flagHttp != "" {
 		baseData = &Translation{
-			Single: single,
-			Double: double,
-			Triple: triple,
+			Single: phoru.Single,
+			Double: phoru.Double,
+			Triple: phoru.Triple,
 		}
 		tmpl = template.Must(template.New("root").Parse(HTML))
 		http.HandleFunc("/phoru/", makeHandler(apiHandler))
@@ -146,101 +97,11 @@ func main() {
 		log.Fatal(http.ListenAndServe(*flagHttp, nil))
 	}
 
-	trans, err := phoru(os.Stdin)
+	trans, err := phoru.Translate(os.Stdin)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Fprintf(os.Stdout, "%v", string(trans))
-}
-
-func phoru(r io.Reader) ([]rune, error) {
-	var out []rune
-	sc := bufio.NewScanner(r)
-	var skipTwo, skipOne bool
-	firstLine := true
-	for sc.Scan() {
-		if !firstLine {
-			out = append(out, '\n')
-		} else {
-			firstLine = false
-		}
-		words := strings.Fields(sc.Text())
-		for j, word := range words {
-			if j != 0 {
-				out = append(out, rune(' '))
-			}
-			var runes, trans []rune
-			for _, v := range word {
-				runes = append(runes, v)
-			}
-			for i, r := range runes {
-				isUpper := false
-				if skipTwo {
-					skipTwo = false
-					skipOne = true
-					continue
-				}
-				if skipOne {
-					skipOne = false
-					continue
-				}
-				if *flagVerbose {
-					fmt.Fprintf(os.Stderr, "%v", string(r))
-				}
-				isUpper = unicode.IsUpper(r)
-				if isUpper {
-					r = unicode.ToLower(r)
-					runes[i] = r
-				}
-				cyril, n := toCyrillic(runes, i)
-				if isUpper {
-					cyril = unicode.ToUpper(cyril)
-				}
-				trans = append(trans, cyril)
-				// TODO(mpl): something more elegant?
-				if n == 3 {
-					skipTwo = true
-				} else if n == 2 {
-					skipOne = true
-				}
-				if *flagVerbose {
-					fmt.Fprintf(os.Stderr, " -> %v\n", string(trans[len(trans)-1:]))
-				}
-			}
-			out = append(out, trans...)
-		}
-	}
-	if err := sc.Err(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// toCyrillic converts to a cyrillic rune the next rune from runes, starting at
-// runes[i]. It returns the converted rune, as well as the number of runes that
-// were "consumed" from runes.
-func toCyrillic(runes []rune, index int) (cyril rune, read int) {
-	i := index
-	switch {
-	case len(runes[i:]) > 2:
-		if cyril, ok := triple[string(runes[i:i+3])]; ok {
-			return cyril, 3
-		}
-		fallthrough
-	case len(runes[i:]) > 1:
-		if cyril, ok := double[string(runes[i:i+2])]; ok {
-			return cyril, 2
-		}
-		fallthrough
-	case len(runes[i:]) == 1:
-		if cyril, ok := single[string(runes[i:i+1])]; ok {
-			return cyril, 1
-		}
-		fallthrough
-	default:
-		log.Printf("unknown rune: %v", string(runes[i]))
-		return runes[i], 1
-	}
 }
 
 const idstring = "http://golang.org/pkg/http/#ListenAndServe"
@@ -285,7 +146,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request, url string) {
 		}
 		return
 	}
-	cyril, err := phoru(strings.NewReader(latin))
+	cyril, err := phoru.Translate(strings.NewReader(latin))
 	if err != nil {
 		log.Printf("translation error: %v", err)
 		http.Error(w, "translation error", 500)
@@ -308,7 +169,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request, url string) {
 		return
 	}
 	input := r.FormValue("inputtext")
-	trans, err := phoru(strings.NewReader(input))
+	trans, err := phoru.Translate(strings.NewReader(input))
 	if err != nil {
 		log.Printf("translation error: %v", err)
 		http.Error(w, "translation error", 500)
@@ -318,9 +179,9 @@ func rootHandler(w http.ResponseWriter, r *http.Request, url string) {
 		Input:  input,
 		Output: string(trans),
 		IsPost: true,
-		Single: single,
-		Double: double,
-		Triple: triple,
+		Single: phoru.Single,
+		Double: phoru.Double,
+		Triple: phoru.Triple,
 	}
 	if err := tmpl.Execute(w, data); err != nil {
 		log.Printf("template error: %v", err)
