@@ -30,7 +30,7 @@ The Russian alphabet
 var Verbose bool
 
 var (
-	single = map[string]rune{
+	Single = map[string]rune{
 		"a": 'а',
 		"b": 'б',
 		"v": 'в',
@@ -48,7 +48,7 @@ var (
 		"o": 'о',
 		"p": 'п',
 		"r": 'р',
-		"s": 'с',
+		"c": 'с',
 		"t": 'т',
 		"u": 'у',
 		"f": 'ф',
@@ -56,7 +56,7 @@ var (
 		"î": 'ы',
 		"è": 'э',
 	}
-	double = map[string]rune{
+	Double = map[string]rune{
 		"yo": 'ё',
 		"ch": 'ч',
 		"sh": 'ш',
@@ -65,14 +65,11 @@ var (
 		"i_": 'й', // redundant with ï for non-accented keymaps
 		"i-": 'ы', // redundant with î for non-accented keymaps
 		"`e": 'э', // redundant with è for non-accented keymaps
+		"ts": 'ц',
 	}
-	triple = map[string]rune{
+	Triple = map[string]rune{
 		"shh": 'щ',
 		"you": 'ю',
-		// TODO(mpl): find a better solution for the "тс" VS "ц"
-		// conflict. Especially since ц is way more frequent than тс (in my
-		// limited experience).
-		"ts-": 'ц',
 	}
 )
 
@@ -146,17 +143,17 @@ func toCyrillic(runes []rune, index int) (cyril rune, read int) {
 	i := index
 	switch {
 	case len(runes[i:]) > 2:
-		if cyril, ok := triple[string(runes[i:i+3])]; ok {
+		if cyril, ok := Triple[string(runes[i:i+3])]; ok {
 			return cyril, 3
 		}
 		fallthrough
 	case len(runes[i:]) > 1:
-		if cyril, ok := double[string(runes[i:i+2])]; ok {
+		if cyril, ok := Double[string(runes[i:i+2])]; ok {
 			return cyril, 2
 		}
 		fallthrough
 	case len(runes[i:]) == 1:
-		if cyril, ok := single[string(runes[i:i+1])]; ok {
+		if cyril, ok := Single[string(runes[i:i+1])]; ok {
 			return cyril, 1
 		}
 		fallthrough
@@ -165,4 +162,3 @@ func toCyrillic(runes []rune, index int) (cyril rune, read int) {
 		return runes[i], 1
 	}
 }
-
