@@ -63,6 +63,7 @@ var (
 		"sh": 'ш',
 		"ya": 'я',
 		"b-": 'ь',
+		"b+": 'ъ',
 		"i_": 'й', // redundant with ï for non-accented keymaps
 		"i-": 'ы', // redundant with î for non-accented keymaps
 		"`e": 'э', // redundant with è for non-accented keymaps
